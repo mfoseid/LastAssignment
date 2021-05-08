@@ -9,15 +9,12 @@ using Amazon.DynamoDBv2;
 using Amazon.DynamoDBv2.Model;
 using Amazon.DynamoDBv2.DocumentModel;
 using Newtonsoft.Json;
-using System.Dynamic;
-using System.Net.Http;
 
 // Assembly attribute to enable the Lambda function's JSON input to be converted into a .NET class.
-[assembly: LambdaSerializer(typeof(Amazon.Lambda.Serialization.SystemTextJson.DefaultLambdaJsonSerializer))]
+[assembly: LambdaSerializer(typeof(Amazon.Lambda.Serialization.Json.JsonSerializer))]
 
-namespace TheLastAssignment
+namespace LastAssignmentLoad
 {
-
     public class RandomFox
     {
         public RandomFox(string v1, string v2)
@@ -32,22 +29,23 @@ namespace TheLastAssignment
 
     public class Function
     {
-
-        public static readonly HttpClient apiClient = new HttpClient();
         private static AmazonDynamoDBClient databaseClient = new AmazonDynamoDBClient();
         private static string tableName = "FoxPics";
 
         public async Task<RandomFox> FunctionHandler(APIGatewayProxyRequest input, ILambdaContext context)
         {
-            string url = "https://randomfox.ca/floof/";
-            string apiString = await apiClient.GetStringAsync(url);
-            RandomFox myFox = JsonConvert.DeserializeObject<RandomFox>(apiString);
-            Table foxes = Table.LoadTable(databaseClient, tableName);
+            string foxId = "";
+            Dictionary<string, string> dict = (Dictionary<string, string>)input.QueryStringParameters;
+            dict.TryGetValue("image", out foxId);
+            GetItemResponse res = await databaseClient.GetItemAsync(tableName, new Dictionary<string, AttributeValue>
+                {
+                    { "image", new AttributeValue { S = foxId } }
+                }
+            );
 
-            PutItemOperationConfig config = new PutItemOperationConfig();
-            config.ReturnValues = ReturnValues.AllOldAttributes;
 
-            await foxes.PutItemAsync(Document.FromJson(JsonConvert.SerializeObject(myFox)), config);
+            Document myDoc = Document.FromAttributeMap(res.Item);
+            RandomFox myFox = JsonConvert.DeserializeObject<RandomFox>(myDoc.ToJson());
             return myFox;
         }
     }
