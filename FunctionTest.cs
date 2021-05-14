@@ -7,9 +7,10 @@ using Xunit;
 using Amazon.Lambda.Core;
 using Amazon.Lambda.TestUtilities;
 
-using LastAssignmentLoad;
+using TheLastAssignment;
+using Newtonsoft.Json;
 
-namespace LastAssignmentLoad.Tests
+namespace TheLastAssignment.Tests
 {
     public class FunctionTest
     {
